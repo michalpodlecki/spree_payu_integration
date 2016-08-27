@@ -1,2 +1,5 @@
 en:
   order_description: "Order from %{name}"
+  payu:
+    charge_label: Commission
+

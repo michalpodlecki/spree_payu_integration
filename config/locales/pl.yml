@@ -1,2 +1,4 @@
 pl:
   order_description: "Zamówienie z %{name}"
+  payu:
+    charge_label: Prowizja od płatności PayU
