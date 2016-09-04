@@ -19,6 +19,10 @@ Spree::CheckoutController.class_eval do
     @order.update!
 
     if payment_method && payment_method.kind_of?(Spree::PaymentMethod::Payu)
+      credentials = Rails.application.config.payu_credentials.call(@order)
+      OpenPayU::Configuration.merchant_pos_id = credentials[:merchant_pos_id]
+      OpenPayU::Configuration.signature_key   = credentials[:signature_key]
+
       order_params = PayuOrder.params(@order, request.remote_ip, order_url(@order), payu_notify_url, order_url(@order))
       response = OpenPayU::Order.create(order_params)
 
