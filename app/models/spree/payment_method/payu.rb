@@ -26,9 +26,12 @@ module Spree
     def create_adjustment(payment)
       return unless payment.new_record?
 
+      label = I18n.t(:charge_label, scope: :payu)
+
+      payment.order.adjustments.each { |a| a.destroy if a.label == label }
       payment.order.adjustments.create!(
         amount: compute_charge.call(payment.order),
-        label: I18n.t(:charge_label, scope: :payu),
+        label: label,
         order: payment.order
       )
     end
