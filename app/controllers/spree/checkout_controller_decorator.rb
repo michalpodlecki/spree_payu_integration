@@ -11,14 +11,15 @@ Spree::CheckoutController.class_eval do
     pm_id = params[:order][:payments_attributes].first[:payment_method_id]
     payment_method = Spree::PaymentMethod.find(pm_id)
 
-    @_payment = @order.payments.build(
-      payment_method_id: payment_method.id,
-      amount: @order.total,
-      state: 'checkout'
-    )
-    @order.update!
-
     if payment_method && payment_method.kind_of?(Spree::PaymentMethod::Payu)
+      payment_method.apply_adjustment(@order) if payment_method.respond_to?(:apply_adjustment)
+
+      @payment = @order.payments.build(
+        payment_method_id: payment_method.id,
+        amount: @order.total,
+        state: 'checkout'
+      )
+
       credentials = Rails.application.config.payu_credentials.call(@order)
       OpenPayU::Configuration.merchant_pos_id = credentials[:merchant_pos_id]
       OpenPayU::Configuration.signature_key   = credentials[:signature_key]
@@ -39,8 +40,8 @@ Spree::CheckoutController.class_eval do
   end
 
   def payment_success(payment_method)
-    unless @_payment.save
-      flash[:error] = @_payment.errors.full_messages.join("\n")
+    unless @payment.save
+      flash[:error] = @payment.errors.full_messages.join("\n")
       redirect_to checkout_state_path(@order.state) and return
     end
 
@@ -49,7 +50,7 @@ Spree::CheckoutController.class_eval do
       redirect_to checkout_state_path(@order.state) and return
     end
 
-    @_payment.pend!
+    @payment.pend!
   end
 
   def payu_error(e = nil)
