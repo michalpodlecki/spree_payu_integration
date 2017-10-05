@@ -3,6 +3,7 @@ module Spree
     protect_from_forgery except: [:notify, :continue]
 
     def notify
+      collect_params_with_newrelic
       response = OpenPayU::Order.retrieve(params[:order][:orderId])
       order_info = response.parsed_data['orders']['orders'].first
       order = Spree::Order.find(order_info['extOrderId'])
@@ -18,6 +19,14 @@ module Spree
       end
 
       render json: OpenPayU::Order.build_notify_response(response.req_id)
+    end
+
+    private
+
+    def collect_params_with_newrelic
+      if defined?(NewRelic)
+        ::NewRelic::Agent.add_custom_attributes({ payu_params: params })
+      end
     end
   end
 end
