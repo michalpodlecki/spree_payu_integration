@@ -14,22 +14,11 @@ Spree::CheckoutController.class_eval do
     if payment_method && payment_method.kind_of?(Spree::PaymentMethod::Payu)
       payment_method.apply_adjustment(@order) if payment_method.respond_to?(:apply_adjustment)
 
-      @payment = @order.payments.build(
-        payment_method_id: payment_method.id,
-        amount: @order.total,
-        state: 'checkout'
-      )
+      payu_response = CreatePayuOrder.new(@order, payment_method, order_params).call
 
-      credentials = Rails.application.config.payu_credentials.call(@order)
-      OpenPayU::Configuration.merchant_pos_id = credentials[:merchant_pos_id]
-      OpenPayU::Configuration.signature_key   = credentials[:signature_key]
-
-      order_params = PayuOrder.params(@order, request.remote_ip, order_url(@order), payu_notify_url, order_url(@order))
-      response = OpenPayU::Order.create(order_params)
-
-      case response.status['status_code']
+      case payu_response.status['status_code']
       when 'SUCCESS'
-        redirect_to response.redirect_uri if payment_success(payment_method)
+        redirect_to payu_response.redirect_uri if payment_success(payment_method)
       else
         payu_error
       end
@@ -37,6 +26,10 @@ Spree::CheckoutController.class_eval do
 
   rescue StandardError => e
     payu_error(e)
+  end
+
+  def order_params
+    PayuOrder.params(@order, request.remote_ip, order_url(@order), payu_notify_url, order_url(@order))
   end
 
   def payment_success(payment_method)
