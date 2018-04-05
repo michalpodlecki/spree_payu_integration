@@ -5,6 +5,7 @@ module Spree
     end
 
     def cancel(*)
+      simulated_successful_billing_response
     end
 
     def source_required?
@@ -43,6 +44,10 @@ module Spree
 
     def compute_charge
       Rails.application.config.payu_charge if defined?(Rails)
+    end
+
+    def simulated_successful_billing_response
+      ActiveMerchant::Billing::Response.new(true, "", {}, {})
     end
   end
 end
